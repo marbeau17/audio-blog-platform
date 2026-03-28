@@ -41,8 +41,17 @@ def get_firestore_client() -> firestore.firestore.Client:
 
 def get_async_firestore_client() -> AsyncClient:
     """Get async Firestore client."""
-    init_firebase()
-    return firestore.async_client()
+    app = init_firebase()
+    # firebase_admin.firestore.async_client() may not exist in older versions
+    if hasattr(firestore, 'async_client'):
+        return firestore.async_client()
+    # Fallback: create AsyncClient directly from app credentials
+    from google.cloud.firestore_v1 import AsyncClient as _AsyncClient
+    settings = get_settings()
+    return _AsyncClient(
+        project=settings.FIREBASE_PROJECT_ID,
+        credentials=app.credential.get_credential(),
+    )
 
 
 def get_auth_client():
