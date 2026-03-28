@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     RATE_LIMIT_AUTHENTICATED: int = 100
     RATE_LIMIT_UNAUTHENTICATED: int = 20
     RATE_LIMIT_TTS: int = 10
+    RATE_LIMIT_ADMIN: int = 200
+    RATE_LIMIT_WEBHOOK: int = 1000
     RATE_LIMIT_WINDOW_SECONDS: int = 60
 
     # Signed URL

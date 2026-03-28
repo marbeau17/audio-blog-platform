@@ -136,6 +136,27 @@ export interface DashboardSummary {
   top_content: { content_id: string; title: string; revenue: number; plays: number }[];
 }
 
+export interface Series {
+  series_id: string;
+  creator_id: string;
+  title: string;
+  description: string;
+  thumbnail_url: string | null;
+  content_ids: string[];
+  pricing: PricingInfo;
+  status: 'draft' | 'published';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Chapter {
+  chapter_id: string;
+  title: string;
+  start_seconds: number;
+  end_seconds: number;
+  order: number;
+}
+
 /* ─── API Response Types ──────────────────────── */
 
 export interface ApiResponse<T> {

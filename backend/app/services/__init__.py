@@ -8,6 +8,7 @@ from app.services.payment_service import PaymentService
 from app.services.stream_service import StreamService
 from app.services.creator_service import CreatorService
 from app.services.admin_service import AdminService
+from app.services.review_service import ReviewService
 
 
 @lru_cache
@@ -37,3 +38,7 @@ def get_creator_service() -> CreatorService:
 
 def get_admin_service() -> AdminService:
     return AdminService(get_db())
+
+
+def get_review_service() -> ReviewService:
+    return ReviewService(get_db())

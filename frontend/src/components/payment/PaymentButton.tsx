@@ -26,7 +26,7 @@ export default function PaymentButton({ contentId, price, onSuccess }: PaymentBu
 
       const { error: stripeError } = await stripe.confirmCardPayment(res.data.client_secret, {
         payment_method: {
-          card: { token: '' } as any, // In production, use Stripe Elements CardElement
+          card: { token: '' } as unknown as import('@stripe/stripe-js').PaymentMethodCreateParams.CardToken, // In production, use Stripe Elements CardElement
         },
       });
 
@@ -35,8 +35,9 @@ export default function PaymentButton({ contentId, price, onSuccess }: PaymentBu
       } else {
         onSuccess?.();
       }
-    } catch (err: any) {
-      setError(err?.error?.detail || '決済処理中にエラーが発生しました');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '決済処理中にエラーが発生しました';
+      setError(message);
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,8 @@
 import re
 import hashlib
 from datetime import datetime, timezone
+import markdown as md_lib
+import bleach
 from google.cloud.firestore_v1 import AsyncClient, FieldFilter
 from app.core.logging import get_logger
 from app.core.exceptions import NotFoundException, ConflictException, ForbiddenException
@@ -175,9 +177,6 @@ class ContentService:
                 })
             update_data["current_version"] = new_version
 
-        if "pricing" in update_data and isinstance(update_data["pricing"], dict):
-            pass  # Already a dict from model_dump
-
         update_data["updated_at"] = datetime.now(timezone.utc)
         await doc_ref.update(update_data)
 
@@ -258,12 +257,29 @@ class ContentService:
         slug = re.sub(r"[\s_]+", "-", slug).strip("-")
         return slug[:100] if slug else "untitled"
 
-    @staticmethod
-    def _markdown_to_html(md: str) -> str:
-        """Basic markdown to HTML (production would use markdown library)."""
-        # Minimal conversion - replace with proper library in production
-        html = md.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        return f"<div>{html}</div>"
+    _ALLOWED_TAGS = [
+        "p", "h1", "h2", "h3", "h4", "h5", "h6",
+        "strong", "em", "a", "ul", "ol", "li",
+        "blockquote", "code", "pre", "img", "br", "hr",
+        "table", "thead", "tbody", "tr", "th", "td",
+    ]
+    _ALLOWED_ATTRIBUTES = {
+        "a": ["href"],
+        "img": ["src", "alt"],
+    }
+    _MD_EXTENSIONS = ["fenced_code", "tables", "toc"]
+
+    @classmethod
+    def _markdown_to_html(cls, md: str) -> str:
+        """Convert Markdown to sanitized HTML."""
+        raw_html = md_lib.markdown(md, extensions=cls._MD_EXTENSIONS)
+        clean_html = bleach.clean(
+            raw_html,
+            tags=cls._ALLOWED_TAGS,
+            attributes=cls._ALLOWED_ATTRIBUTES,
+            strip=True,
+        )
+        return clean_html
 
     @staticmethod
     def _doc_to_dict(doc) -> dict:
@@ -272,5 +288,5 @@ class ContentService:
         # Convert Timestamps to datetime
         for key in ("created_at", "updated_at", "published_at", "scheduled_at"):
             if data.get(key) and hasattr(data[key], "isoformat"):
-                pass  # Already datetime-compatible
+                continue  # Already datetime-compatible
         return data

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import SearchBar from '@/components/search/SearchBar';
 
 export default function Header() {
   const { user, loading, signOut } = useAuth();
@@ -18,6 +19,8 @@ export default function Header() {
           <Link href="/content?pricing=free" className="text-gray-600 hover:text-gray-900">無料</Link>
           <Link href="/content?sort=popular" className="text-gray-600 hover:text-gray-900">人気</Link>
         </nav>
+
+        <SearchBar className="hidden md:block w-64 lg:w-80" />
 
         <div className="flex items-center gap-3">
           {loading ? (

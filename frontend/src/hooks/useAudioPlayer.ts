@@ -53,8 +53,9 @@ export function useAudioPlayer(content: Content | null) {
         }
       }
       setState((s) => ({ ...s, playbackRate: pos.playback_speed || 1.0 }));
-    } catch (err: any) {
-      setState((s) => ({ ...s, error: err?.error?.detail || 'Failed to load audio' }));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load audio';
+      setState((s) => ({ ...s, error: message }));
     } finally {
       setState((s) => ({ ...s, isLoading: false }));
     }
@@ -73,8 +74,8 @@ export function useAudioPlayer(content: Content | null) {
         playback_speed: audio.playbackRate,
         device_id: 'web_browser',
       });
-    } catch {
-      // Silent fail for position sync
+    } catch (err: unknown) {
+      console.error('Operation failed:', err);
     }
   }, [content]);
 
@@ -94,7 +95,7 @@ export function useAudioPlayer(content: Content | null) {
       api.post(`/stream/${content?.content_id}/play-event`, {
         event_type: 'complete',
         position_seconds: audio.currentTime,
-      }).catch(() => {});
+      }).catch((err: unknown) => { console.error('Operation failed:', err); });
     });
     audio.addEventListener('error', () => {
       setState((s) => ({ ...s, error: 'Audio playback error', isLoading: false }));

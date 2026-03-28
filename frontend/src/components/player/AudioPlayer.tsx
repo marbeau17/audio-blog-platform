@@ -2,6 +2,7 @@
 
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useAppStore } from '@/store';
+import ChapterList from './ChapterList';
 
 const SPEEDS = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
@@ -99,6 +100,13 @@ export default function AudioPlayer() {
           {state.isMuted ? '🔇' : '🔊'}
         </button>
       </div>
+
+      {/* Chapter list */}
+      <ChapterList
+        contentId={content.content_id}
+        currentTime={state.currentTime}
+        onSeek={seek}
+      />
 
       {/* Error */}
       {state.error && (

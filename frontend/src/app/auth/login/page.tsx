@@ -20,8 +20,9 @@ export default function LoginPage() {
     try {
       await signIn(email, password);
       router.push('/');
-    } catch (err: any) {
-      setError(err?.message || 'ログインに失敗しました');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'ログインに失敗しました';
+      setError(message);
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import type { DashboardSummary } from '@/types';
 
 export default function CreatorDashboardPage() {
@@ -14,7 +15,7 @@ export default function CreatorDashboardPage() {
   useEffect(() => {
     api.get<DashboardSummary>('/creator/dashboard')
       .then((res) => setDashboard(res.data))
-      .catch(() => {})
+      .catch((err: unknown) => { console.error('Operation failed:', err); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -30,71 +31,74 @@ export default function CreatorDashboardPage() {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold">クリエイターダッシュボード</h1>
-        <Link href="/creator/new" className="btn-primary">新規作成</Link>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-        {stats.map((s) => (
-          <div key={s.label} className="card p-4 text-center">
-            <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-gray-500 mt-1">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Recent Earnings */}
-        <div className="card p-6">
-          <h2 className="font-semibold mb-4">直近の売上</h2>
-          {dashboard.recent_earnings.length === 0 ? (
-            <p className="text-gray-400 text-sm">まだ売上がありません</p>
-          ) : (
-            <div className="space-y-2">
-              {dashboard.recent_earnings.slice(0, 7).map((e) => (
-                <div key={e.date} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{e.date}</span>
-                  <span className="font-medium">¥{e.amount.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          )}
+    <ProtectedRoute requiredRole="creator">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl font-bold">クリエイターダッシュボード</h1>
+          <Link href="/creator/new" className="btn-primary">新規作成</Link>
         </div>
 
-        {/* Top Content */}
-        <div className="card p-6">
-          <h2 className="font-semibold mb-4">人気コンテンツ</h2>
-          {dashboard.top_content.length === 0 ? (
-            <p className="text-gray-400 text-sm">まだコンテンツがありません</p>
-          ) : (
-            <div className="space-y-3">
-              {dashboard.top_content.slice(0, 5).map((c, i) => (
-                <div key={c.content_id} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400 w-5">{i + 1}</span>
-                  <div className="flex-1 min-w-0">
-                    <Link href={`/content/${c.content_id}`} className="text-sm font-medium truncate hover:text-brand-600">
-                      {c.title}
-                    </Link>
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+          {stats.map((s) => (
+            <div key={s.label} className="card p-4 text-center">
+              <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
+              <p className="text-xs text-gray-500 mt-1">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Recent Earnings */}
+          <div className="card p-6">
+            <h2 className="font-semibold mb-4">直近の売上</h2>
+            {dashboard.recent_earnings.length === 0 ? (
+              <p className="text-gray-400 text-sm">まだ売上がありません</p>
+            ) : (
+              <div className="space-y-2">
+                {dashboard.recent_earnings.slice(0, 7).map((e) => (
+                  <div key={e.date} className="flex justify-between text-sm">
+                    <span className="text-gray-600">{e.date}</span>
+                    <span className="font-medium">¥{e.amount.toLocaleString()}</span>
                   </div>
-                  <span className="text-xs text-gray-500">▶ {c.plays}</span>
-                  <span className="text-xs font-medium text-green-600">¥{c.revenue.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Top Content */}
+          <div className="card p-6">
+            <h2 className="font-semibold mb-4">人気コンテンツ</h2>
+            {dashboard.top_content.length === 0 ? (
+              <p className="text-gray-400 text-sm">まだコンテンツがありません</p>
+            ) : (
+              <div className="space-y-3">
+                {dashboard.top_content.slice(0, 5).map((c, i) => (
+                  <div key={c.content_id} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-400 w-5">{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <Link href={`/content/${c.content_id}`} className="text-sm font-medium truncate hover:text-brand-600">
+                        {c.title}
+                      </Link>
+                    </div>
+                    <span className="text-xs text-gray-500">▶ {c.plays}</span>
+                    <span className="text-xs font-medium text-green-600">¥{c.revenue.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href="/creator/contents" className="btn-secondary">コンテンツ管理</Link>
+          <Link href="/creator/series" className="btn-secondary">シリーズ管理</Link>
+          <Link href="/creator/analytics" className="btn-secondary">アナリティクス</Link>
+          <Link href="/creator/earnings" className="btn-secondary">売上詳細</Link>
+          <Link href="/creator/stripe" className="btn-secondary">Stripe設定</Link>
         </div>
       </div>
-
-      {/* Quick Actions */}
-      <div className="mt-8 flex flex-wrap gap-3">
-        <Link href="/creator/contents" className="btn-secondary">コンテンツ管理</Link>
-        <Link href="/creator/analytics" className="btn-secondary">アナリティクス</Link>
-        <Link href="/creator/earnings" className="btn-secondary">売上詳細</Link>
-        <Link href="/creator/stripe" className="btn-secondary">Stripe設定</Link>
-      </div>
-    </div>
+    </ProtectedRoute>
   );
 }

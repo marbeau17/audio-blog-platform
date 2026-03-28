@@ -31,6 +31,10 @@ aiohttp==3.11.11
 # Audio processing
 pydub==0.25.1
 
+# Content processing
+markdown==3.7.0
+bleach==6.2.0
+
 # Utilities
 python-dotenv==1.0.1
 structlog==24.4.0

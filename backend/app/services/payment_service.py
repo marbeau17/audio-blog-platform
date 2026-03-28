@@ -8,6 +8,7 @@ from app.core.logging import get_logger
 from app.core.exceptions import (
     NotFoundException, ConflictException, ForbiddenException, UpstreamException,
 )
+from app.core.constants import STRIPE_FEE_RATE
 
 logger = get_logger(__name__)
 
@@ -106,7 +107,7 @@ class PaymentService:
 
         amount = payment_intent["amount"]
         platform_fee = payment_intent.get("application_fee_amount", 0)
-        stripe_fee = int(amount * 0.036)  # Approximate
+        stripe_fee = int(amount * STRIPE_FEE_RATE)  # Approximate
         seller_earnings = amount - platform_fee
 
         now = datetime.now(timezone.utc)

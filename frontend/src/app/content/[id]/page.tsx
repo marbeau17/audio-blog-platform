@@ -26,7 +26,7 @@ export default function ContentDetailPage() {
           const purchaseRes = await api.get<{ purchased: boolean }>(`/payment/purchases/${id}/check`);
           setPurchased(purchaseRes.data.purchased);
         }
-      } catch { /* handle */ }
+      } catch (err: unknown) { console.error('Operation failed:', err); }
       finally { setLoading(false); }
     })();
   }, [id, user]);

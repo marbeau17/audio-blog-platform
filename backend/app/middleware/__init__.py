@@ -10,6 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.core.exceptions import AppException, RateLimitException
+from app.middleware.rate_limiter import RateLimiterMiddleware
 
 logger = get_logger(__name__)
 
@@ -23,13 +24,15 @@ def setup_middleware(app: FastAPI) -> None:
         CORSMiddleware,
         allow_origins=settings.ALLOWED_ORIGINS,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
         expose_headers=["X-Request-ID", "X-RateLimit-Limit", "X-RateLimit-Remaining"],
     )
 
-    # Custom middleware
+    # Custom middleware (last added = first executed)
+    # Execution order: SecurityHeaders -> RateLimiter -> RequestLogging -> route
     app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(RateLimiterMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
 
 
@@ -80,6 +83,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "microphone=(), camera=(), geolocation=()"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' https://js.stripe.com; "
+            "frame-src https://js.stripe.com; "
+            "connect-src 'self' https://api.stripe.com https://firestore.googleapis.com https://storage.googleapis.com; "
+            "img-src 'self' https://storage.googleapis.com https://firebasestorage.googleapis.com data:; "
+            "style-src 'self' 'unsafe-inline'; "
+            "font-src 'self' https://fonts.gstatic.com"
+        )
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
 
 

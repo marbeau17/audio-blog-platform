@@ -34,15 +34,15 @@ export default function ContentListPage() {
       setContents(loadMore ? [...contents, ...newItems] : newItems);
       setCursor(res.pagination?.cursor || null);
       setHasMore(res.pagination?.has_more || false);
-    } catch {
-      // handle error
+    } catch (err: unknown) {
+      console.error('Operation failed:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    api.get<Category[]>('/categories').then((res) => setCategories(res.data)).catch(() => {});
+    api.get<Category[]>('/categories').then((res) => setCategories(res.data)).catch((err: unknown) => { console.error('Operation failed:', err); });
     fetchContents();
   }, [category, sort, pricing]);
 

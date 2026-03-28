@@ -14,6 +14,8 @@ class AudioInfo(BaseModel):
     format: str = "mp3"
     tts_voice: str | None = None
     tts_job_id: str | None = None
+    sample_rate_hertz: int = 24000
+    generated_at: str | None = None
 
 
 class PricingInfo(BaseModel):
@@ -254,6 +256,29 @@ class SuspendRequest(BaseModel):
 class ModerateRequest(BaseModel):
     action: str  # 'approve' | 'reject' | 'flag'
     reason: str = ""
+
+
+# ─── Review Schemas ──────────────────────────────────
+
+class ReviewCreate(BaseModel):
+    rating: int = Field(..., ge=1, le=5)
+    comment: str = Field("", max_length=1000)
+
+
+class ReviewUpdate(BaseModel):
+    rating: int | None = Field(None, ge=1, le=5)
+    comment: str | None = Field(None, max_length=1000)
+
+
+class ReviewResponse(BaseModel):
+    review_id: str
+    content_id: str
+    user_id: str
+    user_display_name: str
+    rating: int
+    comment: str
+    created_at: datetime
+    updated_at: datetime
 
 
 # ─── Common Schemas ───────────────────────────────────

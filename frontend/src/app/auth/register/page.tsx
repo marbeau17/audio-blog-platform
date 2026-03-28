@@ -22,8 +22,9 @@ export default function RegisterPage() {
     try {
       await signUp(email, password, displayName);
       router.push('/');
-    } catch (err: any) {
-      setError(err?.message || '登録に失敗しました');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '登録に失敗しました';
+      setError(message);
     } finally {
       setLoading(false);
     }

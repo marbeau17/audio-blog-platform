@@ -7,6 +7,7 @@ from google.cloud.firestore_v1 import AsyncClient
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.core.exceptions import NotFoundException, ForbiddenException
+from app.core.constants import PLAYBACK_COMPLETION_THRESHOLD
 
 logger = get_logger(__name__)
 
@@ -113,7 +114,7 @@ class StreamService:
         )
 
         # Check completion (98%+ = completed)
-        if total_duration_seconds > 0 and position_seconds / total_duration_seconds >= 0.98:
+        if total_duration_seconds > 0 and position_seconds / total_duration_seconds >= PLAYBACK_COMPLETION_THRESHOLD:
             await self._increment_completion_count(content_id)
 
         return data

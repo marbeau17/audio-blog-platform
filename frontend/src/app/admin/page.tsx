@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 interface PlatformAnalytics {
   users: { total: number; creators: number; listeners: number };
@@ -18,52 +19,54 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     Promise.all([
       api.get<PlatformAnalytics>('/admin/analytics/platform'),
-      api.get<any>('/admin/tts/queue'),
+      api.get<{ queue: Record<string, number>; total_active: number }>('/admin/tts/queue'),
     ])
       .then(([a, q]) => { setAnalytics(a.data); setTtsQueue(q.data); })
-      .catch(() => {})
+      .catch((err: unknown) => { console.error('Operation failed:', err); })
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="max-w-6xl mx-auto px-4 py-8"><div className="h-48 bg-gray-100 rounded-xl animate-pulse" /></div>;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-8">管理者ダッシュボード</h1>
+    <ProtectedRoute requiredRole="admin">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-8">管理者ダッシュボード</h1>
 
-      {analytics && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <StatCard label="総ユーザー" value={analytics.users.total} />
-          <StatCard label="クリエイター" value={analytics.users.creators} />
-          <StatCard label="公開コンテンツ" value={analytics.content.published} />
-          <StatCard label="総売上" value={`¥${analytics.revenue.total.toLocaleString()}`} />
-          <StatCard label="総再生数" value={analytics.engagement.total_plays.toLocaleString()} />
-          <StatCard label="総コンテンツ" value={analytics.content.total} />
-          {ttsQueue && (
-            <>
-              <StatCard label="TTS処理中" value={ttsQueue.total_active} />
-              <StatCard label="TTS待機中" value={ttsQueue.queue.queued || 0} />
-            </>
-          )}
-        </div>
-      )}
+        {analytics && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <StatCard label="総ユーザー" value={analytics.users.total} />
+            <StatCard label="クリエイター" value={analytics.users.creators} />
+            <StatCard label="公開コンテンツ" value={analytics.content.published} />
+            <StatCard label="総売上" value={`¥${analytics.revenue.total.toLocaleString()}`} />
+            <StatCard label="総再生数" value={analytics.engagement.total_plays.toLocaleString()} />
+            <StatCard label="総コンテンツ" value={analytics.content.total} />
+            {ttsQueue && (
+              <>
+                <StatCard label="TTS処理中" value={ttsQueue.total_active} />
+                <StatCard label="TTS待機中" value={ttsQueue.queue.queued || 0} />
+              </>
+            )}
+          </div>
+        )}
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="card p-6">
-          <h2 className="font-semibold mb-4">クイックリンク</h2>
-          <div className="space-y-2">
-            <AdminLink href="/admin/users" label="ユーザー管理" />
-            <AdminLink href="/admin/moderation" label="コンテンツモデレーション" />
-            <AdminLink href="/admin/tts" label="TTS ジョブ管理" />
-            <AdminLink href="/admin/system" label="システム設定" />
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="card p-6">
+            <h2 className="font-semibold mb-4">クイックリンク</h2>
+            <div className="space-y-2">
+              <AdminLink href="/admin/users" label="ユーザー管理" />
+              <AdminLink href="/admin/moderation" label="コンテンツモデレーション" />
+              <AdminLink href="/admin/tts" label="TTS ジョブ管理" />
+              <AdminLink href="/admin/system" label="システム設定" />
+            </div>
+          </div>
+          <div className="card p-6">
+            <h2 className="font-semibold mb-4">システムヘルス</h2>
+            <HealthCheck />
           </div>
         </div>
-        <div className="card p-6">
-          <h2 className="font-semibold mb-4">システムヘルス</h2>
-          <HealthCheck />
-        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
 

@@ -180,7 +180,8 @@ class AdminService:
         # Firestore check
         try:
             await self.db.collection("system_config").document("health_check").get()
-        except Exception:
+        except (ConnectionError, TimeoutError, OSError) as exc:
+            logger.warning("firestore_health_check_failed", error=str(exc))
             health["firestore"] = "unhealthy"
 
         return health

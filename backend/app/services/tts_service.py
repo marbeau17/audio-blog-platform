@@ -14,11 +14,13 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.core.exceptions import UpstreamException, NotFoundException
+from app.core.constants import (
+    CIRCUIT_FAILURE_THRESHOLD,
+    CIRCUIT_RECOVERY_TIMEOUT,
+    TTS_MIN_CHUNK_BYTES,
+)
 
 logger = get_logger(__name__)
-
-CIRCUIT_FAILURE_THRESHOLD = 5
-CIRCUIT_RECOVERY_TIMEOUT = 30
 
 
 class TtsService:
@@ -49,7 +51,7 @@ class TtsService:
     def split_into_chunks(self, text: str, max_bytes: int | None = None) -> list[str]:
         """Split text into chunks respecting sentence boundaries."""
         max_bytes = max_bytes or self.settings.TTS_CHUNK_MAX_BYTES
-        min_bytes = 100
+        min_bytes = TTS_MIN_CHUNK_BYTES
 
         # First split by sections (double newlines / headings)
         sections = re.split(r"\n\n+", text)
@@ -167,7 +169,7 @@ class TtsService:
                 input=synthesis_input, voice=voice, audio_config=audio_config
             )
             return response.audio_content
-        except Exception as e:
+        except (ConnectionError, TimeoutError, OSError, ValueError) as e:
             logger.error("tts_synthesis_failed", error=str(e))
             raise UpstreamException("Google Cloud TTS", str(e))
 
@@ -336,7 +338,7 @@ class TtsService:
 
             logger.info("tts_pipeline_completed", job_id=job_id, content_id=content_id)
 
-        except Exception as e:
+        except (UpstreamException, NotFoundException, RuntimeError, OSError) as e:
             logger.error("tts_pipeline_failed", job_id=job_id, error=str(e))
             await jobs_ref.update({
                 "status": "failed",
