@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import AudioPlayer from '@/components/player/AudioPlayer';
 import Header from '@/components/layout/Header';
+import ToastProvider from '@/components/ui/Toast';
 
 export const metadata: Metadata = {
   title: {
@@ -38,9 +39,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className="font-sans bg-gray-50 text-gray-900 antialiased">
-        <Header />
-        <main className="min-h-screen pb-24">{children}</main>
-        <AudioPlayer />
+        <ToastProvider>
+          <Header />
+          <main className="min-h-screen pb-24">{children}</main>
+          <AudioPlayer />
+        </ToastProvider>
       </body>
     </html>
   );

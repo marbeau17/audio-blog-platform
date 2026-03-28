@@ -53,6 +53,25 @@ export function useAudioPlayer(content: Content | null) {
         }
       }
       setState((s) => ({ ...s, playbackRate: pos.playback_speed || 1.0 }));
+
+      // Set up Media Session API for background playback
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: content.title,
+          artist: content.creator_display_name || 'AudioBlog',
+          album: 'AudioBlog',
+          artwork: content.thumbnail_url ? [
+            { src: content.thumbnail_url, sizes: '512x512', type: 'image/jpeg' }
+          ] : [],
+        });
+
+        navigator.mediaSession.setActionHandler('play', () => play());
+        navigator.mediaSession.setActionHandler('pause', () => pause());
+        navigator.mediaSession.setActionHandler('seekbackward', () => skipBack(10));
+        navigator.mediaSession.setActionHandler('seekforward', () => skipForward(30));
+        navigator.mediaSession.setActionHandler('previoustrack', null);
+        navigator.mediaSession.setActionHandler('nexttrack', null);
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to load audio';
       setState((s) => ({ ...s, error: message }));
@@ -91,6 +110,9 @@ export function useAudioPlayer(content: Content | null) {
     });
     audio.addEventListener('ended', () => {
       setState((s) => ({ ...s, isPlaying: false }));
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
       savePosition();
       api.post(`/stream/${content?.content_id}/play-event`, {
         event_type: 'complete',
@@ -137,12 +159,18 @@ export function useAudioPlayer(content: Content | null) {
   const play = () => {
     audioRef.current?.play();
     setState((s) => ({ ...s, isPlaying: true }));
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'playing';
+    }
   };
 
   const pause = () => {
     audioRef.current?.pause();
     setState((s) => ({ ...s, isPlaying: false }));
     savePosition();
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = 'paused';
+    }
   };
 
   const seek = (time: number) => {

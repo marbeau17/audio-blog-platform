@@ -36,6 +36,7 @@ export default function AudioPlayer() {
     cycleRepeat,
   } = usePlaylist();
   const [showQueue, setShowQueue] = useState(false);
+  const [showVolume, setShowVolume] = useState(false);
 
   if (!isVisible || !content) return null;
 
@@ -132,9 +133,46 @@ export default function AudioPlayer() {
         </select>
 
         {/* Volume */}
-        <button onClick={toggleMute} className="p-2 text-gray-600 hover:text-gray-900">
-          {state.isMuted ? '🔇' : '🔊'}
-        </button>
+        <div
+          className="relative flex items-center group"
+          onMouseEnter={() => setShowVolume(true)}
+          onMouseLeave={() => setShowVolume(false)}
+        >
+          <button onClick={toggleMute} className="p-2 text-gray-600 hover:text-gray-900">
+            {state.isMuted || state.volume === 0 ? '🔇' : state.volume < 0.5 ? '🔉' : '🔊'}
+          </button>
+          <div
+            className={`flex items-center gap-2 overflow-hidden transition-all duration-200 ${
+              showVolume ? 'w-28 opacity-100' : 'w-0 opacity-0'
+            }`}
+          >
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={state.isMuted ? 0 : state.volume}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setVolume(v);
+                if (state.isMuted && v > 0) toggleMute();
+              }}
+              className="w-20 h-1 appearance-none rounded-full bg-gray-300 cursor-pointer
+                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3
+                [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-600
+                [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3
+                [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-brand-600 [&::-moz-range-thumb]:border-0
+                [&::-webkit-slider-runnable-track]:rounded-full [&::-moz-range-track]:rounded-full"
+              style={{
+                background: `linear-gradient(to right, var(--color-brand-600, #7c3aed) ${(state.isMuted ? 0 : state.volume) * 100}%, #d1d5db ${(state.isMuted ? 0 : state.volume) * 100}%)`,
+              }}
+              title={`${Math.round((state.isMuted ? 0 : state.volume) * 100)}%`}
+            />
+            <span className="text-xs text-gray-500 w-8 text-right">
+              {Math.round((state.isMuted ? 0 : state.volume) * 100)}%
+            </span>
+          </div>
+        </div>
 
         {/* Queue toggle */}
         <button

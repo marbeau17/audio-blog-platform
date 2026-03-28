@@ -10,7 +10,8 @@ from app.core.logging import get_logger
 from app.core.exceptions import (
     NotFoundException, ConflictException, ForbiddenException, UpstreamException,
 )
-from app.core.constants import STRIPE_FEE_RATE
+from app.core.constants import STRIPE_FEE_RATE, REFUND_WINDOW_DAYS
+from app.services.notification_service import NotificationService
 
 logger = get_logger(__name__)
 
@@ -19,6 +20,7 @@ class PaymentService:
     def __init__(self, db: AsyncClient):
         self.db = db
         self.settings = get_settings()
+        self.notification_service = NotificationService(db)
         stripe.api_key = self.settings.STRIPE_SECRET_KEY
 
     # ─── Purchase Flow ────────────────────────────────
@@ -164,9 +166,48 @@ class PaymentService:
         logger.info("purchase_completed",
                      tx_id=tx_ref.id, buyer=buyer_id, content=content_id, amount=amount)
 
+        # Send notifications
+        content_title = content_data.get("title", "")
+        creator_name = content_data.get("creator_display_name", "")
+
+        await self.notification_service.create_notification(
+            user_id=buyer_id,
+            type="purchase",
+            title="購入完了",
+            message=f"「{content_title}」の購入が完了しました。",
+            data={"content_id": content_id, "transaction_id": tx_ref.id},
+        )
+
+        await self.notification_service.create_notification(
+            user_id=creator_id,
+            type="payment_received",
+            title="売上通知",
+            message=f"「{content_title}」が購入されました（¥{amount:,}）。",
+            data={"content_id": content_id, "transaction_id": tx_ref.id, "amount": amount},
+        )
+
     async def handle_payment_failed(self, payment_intent: dict) -> None:
         """Handle failed payment webhook."""
         logger.warning("payment_failed", intent_id=payment_intent["id"])
+
+    async def validate_refund_eligibility(self, transaction_id: str, user_role: str) -> None:
+        """Check the 7-day refund window. Admins bypass the time limit."""
+        if user_role == "admin":
+            return
+
+        tx_doc = await self.db.collection("transactions").document(transaction_id).get()
+        if not tx_doc.exists:
+            raise NotFoundException("Transaction")
+
+        tx_data = tx_doc.to_dict()
+        created_at = tx_data.get("created_at")
+        if created_at is None:
+            raise NotFoundException("Transaction date")
+
+        now = datetime.now(timezone.utc)
+        days_since_purchase = (now - created_at).days
+        if days_since_purchase > REFUND_WINDOW_DAYS:
+            raise ForbiddenException("返金期限（購入後7日間）を過ぎています")
 
     async def handle_refund(self, charge: dict) -> None:
         """Handle refund webhook."""

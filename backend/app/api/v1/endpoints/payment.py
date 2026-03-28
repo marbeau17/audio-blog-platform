@@ -6,7 +6,7 @@ import stripe
 from fastapi import APIRouter, Request, Query
 
 from app.core.config import get_settings
-from app.core.security import CurrentUser, AdminUser
+from app.core.security import CurrentUser
 from app.core.exceptions import UnauthorizedException
 from app.core.logging import get_logger
 from app.schemas import PaymentIntentCreate, TipCreate, RefundRequest
@@ -96,8 +96,13 @@ async def send_tip(body: TipCreate, user: CurrentUser):
 
 
 @router.post("/refund/{transaction_id}")
-async def process_refund(transaction_id: str, body: RefundRequest, user: AdminUser):
-    """Process refund (admin only)."""
+async def process_refund(transaction_id: str, body: RefundRequest, user: CurrentUser):
+    """Process refund (7-day window for non-admin users; admins can always refund)."""
+    svc = get_payment_service()
+
+    # Validate refund eligibility (checks 7-day window for non-admin users)
+    await svc.validate_refund_eligibility(transaction_id, user.role)
+
     from app.core.firebase import get_async_firestore_client
     db = get_async_firestore_client()
 

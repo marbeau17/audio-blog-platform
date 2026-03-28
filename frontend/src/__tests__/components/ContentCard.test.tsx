@@ -100,7 +100,9 @@ describe('ContentCard', () => {
   it('calls setCurrentContent when play button is clicked', () => {
     const content = makeContent();
     render(<ContentCard content={content} />);
-    const playButton = screen.getByRole('button');
+    const buttons = screen.getAllByRole('button');
+    // The play button is the last button in the overlay
+    const playButton = buttons[buttons.length - 1];
     fireEvent.click(playButton);
     expect(mockSetCurrentContent).toHaveBeenCalledWith(content);
   });

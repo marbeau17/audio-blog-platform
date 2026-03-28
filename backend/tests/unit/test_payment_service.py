@@ -160,6 +160,9 @@ class TestHandlePaymentSucceeded:
 
         mock_db.collection.side_effect = collection_side_effect
 
+        # Mock notification service to avoid awaiting non-async MagicMock
+        payment_service.notification_service.create_notification = AsyncMock()
+
         await payment_service.handle_payment_succeeded(payment_intent)
         tx_ref.set.assert_called_once()
 

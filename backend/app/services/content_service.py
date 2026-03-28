@@ -129,7 +129,11 @@ class ContentService:
             },
             "status": data.status,
             "published_at": now if data.status == "published" else None,
-            "scheduled_at": None,
+            "scheduled_at": (
+                datetime.fromisoformat(data.scheduled_at)
+                if data.status == "scheduled" and data.scheduled_at
+                else None
+            ),
             "seo": data.seo.model_dump(),
             "created_at": now,
             "updated_at": now,
@@ -179,6 +183,15 @@ class ContentService:
                     "created_by": user_id,
                 })
             update_data["current_version"] = new_version
+
+        # Handle scheduled publishing
+        if update_data.get("status") == "scheduled" and update_data.get("scheduled_at"):
+            update_data["scheduled_at"] = datetime.fromisoformat(update_data["scheduled_at"])
+        elif update_data.get("status") == "published":
+            update_data["published_at"] = datetime.now(timezone.utc)
+            update_data["scheduled_at"] = None
+        elif update_data.get("status") == "draft":
+            update_data["scheduled_at"] = None
 
         update_data["updated_at"] = datetime.now(timezone.utc)
         await doc_ref.update(update_data)

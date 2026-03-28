@@ -53,6 +53,7 @@ class ContentCreate(BaseModel):
     seo: SeoInfo = SeoInfo()
     thumbnail_url: str | None = None
     status: str = "draft"
+    scheduled_at: str | None = None
 
 
 class ContentUpdate(BaseModel):
@@ -66,6 +67,8 @@ class ContentUpdate(BaseModel):
     pricing: PricingInfo | None = None
     seo: SeoInfo | None = None
     thumbnail_url: str | None = None
+    status: str | None = None
+    scheduled_at: str | None = None
 
 
 class ContentResponse(BaseModel):
@@ -87,6 +90,7 @@ class ContentResponse(BaseModel):
     stats: ContentStats
     status: str
     published_at: datetime | None = None
+    scheduled_at: datetime | None = None
     seo: SeoInfo
     created_at: datetime
     updated_at: datetime
@@ -281,6 +285,29 @@ class ReviewResponse(BaseModel):
     comment: str
     created_at: datetime
     updated_at: datetime
+
+
+# ─── Favorite Schemas ────────────────────────────────
+
+class FavoriteResponse(BaseModel):
+    content_id: str
+    content_title: str
+    creator_display_name: str
+    thumbnail_url: str | None = None
+    added_at: datetime
+
+
+# ─── Notification Schemas ────────────────────────────
+
+class NotificationResponse(BaseModel):
+    notification_id: str
+    user_id: str
+    type: str
+    title: str
+    message: str
+    data: dict | None = None
+    is_read: bool = False
+    created_at: datetime
 
 
 # ─── Common Schemas ───────────────────────────────────

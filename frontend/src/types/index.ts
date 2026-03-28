@@ -47,6 +47,7 @@ export interface Content {
   stats: ContentStats;
   status: string;
   published_at: string | null;
+  scheduled_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -155,6 +156,14 @@ export interface Chapter {
   start_seconds: number;
   end_seconds: number;
   order: number;
+}
+
+export interface Favorite {
+  content_id: string;
+  content_title: string;
+  creator_display_name: string;
+  thumbnail_url: string | null;
+  added_at: string;
 }
 
 /* ─── API Response Types ──────────────────────── */

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import SearchBar from '@/components/search/SearchBar';
+import NotificationBell from '@/components/layout/NotificationBell';
 
 export default function Header() {
   const { user, loading, signOut } = useAuth();
@@ -19,6 +20,7 @@ export default function Header() {
           <Link href="/content?pricing=free" className="text-gray-600 hover:text-gray-900">無料</Link>
           <Link href="/content?sort=popular" className="text-gray-600 hover:text-gray-900">人気</Link>
           <Link href="/playlists" className="text-gray-600 hover:text-gray-900">プレイリスト</Link>
+          <Link href="/favorites" className="text-gray-600 hover:text-gray-900">お気に入り</Link>
         </nav>
 
         <SearchBar className="hidden md:block w-64 lg:w-80" />
@@ -31,6 +33,7 @@ export default function Header() {
               {user.role === 'creator' || user.role === 'admin' ? (
                 <Link href="/creator" className="btn-secondary text-xs">ダッシュボード</Link>
               ) : null}
+              <NotificationBell />
               <div className="relative group">
                 <button className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-bold">

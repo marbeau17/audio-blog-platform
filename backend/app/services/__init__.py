@@ -9,6 +9,8 @@ from app.services.stream_service import StreamService
 from app.services.creator_service import CreatorService
 from app.services.admin_service import AdminService
 from app.services.review_service import ReviewService
+from app.services.favorites_service import FavoritesService
+from app.services.notification_service import NotificationService
 
 
 @lru_cache
@@ -42,3 +44,11 @@ def get_admin_service() -> AdminService:
 
 def get_review_service() -> ReviewService:
     return ReviewService(get_db())
+
+
+def get_favorites_service() -> FavoritesService:
+    return FavoritesService(get_db())
+
+
+def get_notification_service() -> NotificationService:
+    return NotificationService(get_db())

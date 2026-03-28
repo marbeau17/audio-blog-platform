@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { User as UserIcon, Shield, Mic, Save, Trash2, Loader2, ExternalLink } from 'lucide-react';
+import { User as UserIcon, Shield, Mic, Save, Trash2, Loader2, ExternalLink, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import type { User } from '@/types';
@@ -121,6 +121,17 @@ export default function ProfilePage() {
             <Mic className="w-4 h-4" />
             クリエイターダッシュボード
             <ExternalLink className="w-3 h-3" />
+          </Link>
+        )}
+
+        {user.role === 'listener' && (
+          <Link
+            href="/creator/apply"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
+          >
+            <Mic className="w-4 h-4" />
+            クリエイターになる
+            <ArrowRight className="w-4 h-4" />
           </Link>
         )}
       </div>

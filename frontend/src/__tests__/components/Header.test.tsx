@@ -20,6 +20,13 @@ jest.mock('@/components/search/SearchBar', () => {
   };
 });
 
+// Mock NotificationBell to avoid Firebase dependency
+jest.mock('@/components/layout/NotificationBell', () => {
+  return function MockNotificationBell() {
+    return <div data-testid="notification-bell" />;
+  };
+});
+
 // Mock useAuth hook
 const mockSignOut = jest.fn();
 const mockUseAuth = jest.fn();

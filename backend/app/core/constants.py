@@ -41,3 +41,6 @@ POSITION_SAVE_INTERVAL_SECONDS = 5
 
 # Signed URL expiry
 DEFAULT_SIGNED_URL_EXPIRY_SECONDS = 3600
+
+# Refund window (days after purchase)
+REFUND_WINDOW_DAYS = 7
