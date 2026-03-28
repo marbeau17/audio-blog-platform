@@ -1,0 +1,44 @@
+# Core
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+uvloop==0.21.0
+httptools==0.6.4
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-multipart==0.0.19
+
+# Firebase
+firebase-admin==6.6.0
+google-cloud-firestore==2.19.0
+
+# Google Cloud
+google-cloud-texttospeech==2.21.1
+google-cloud-storage==2.19.0
+google-cloud-tasks==2.16.0
+
+# Stripe
+stripe==11.4.1
+
+# Auth / Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+cryptography==44.0.0
+
+# HTTP
+httpx==0.28.1
+aiohttp==3.11.11
+
+# Audio processing
+pydub==0.25.1
+
+# Utilities
+python-dotenv==1.0.1
+structlog==24.4.0
+tenacity==9.0.0
+circuitbreaker==2.0.0
+redis==5.2.1
+celery==5.4.0
+
+# Monitoring
+prometheus-client==0.21.1
+sentry-sdk[fastapi]==2.19.2

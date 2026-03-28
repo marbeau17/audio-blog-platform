@@ -1,0 +1,140 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper Functions ─────────────────────────
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    function hasRole(role) {
+      return isAuthenticated() && request.auth.token.role == role;
+    }
+    function isCreator() {
+      return hasRole('creator') || hasRole('admin');
+    }
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    // ─── Users ────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'is_suspended']);
+      allow delete: if false;
+
+      // Purchases (server-write only, owner-read)
+      match /purchases/{purchaseId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
+      // Playback positions (owner read/write)
+      match /playback_positions/{contentId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Favorites (owner read/write)
+      match /favorites/{contentId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Playlists (owner read/write)
+      match /playlists/{playlistId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ─── Contents ─────────────────────────────────
+    match /contents/{contentId} {
+      allow read: if resource.data.status == 'published' && !resource.data.is_deleted
+                  || (isAuthenticated() && request.auth.uid == resource.data.creator_id)
+                  || isAdmin();
+      allow create: if isCreator();
+      allow update: if (isAuthenticated() && request.auth.uid == resource.data.creator_id)
+                    || isAdmin();
+      allow delete: if false; // soft delete only
+
+      // Chapters
+      match /chapters/{chapterId} {
+        allow read: if true;
+        allow write: if false; // server only
+      }
+
+      // Reviews
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if isAuthenticated();
+        allow update: if isOwner(resource.data.user_id);
+        allow delete: if isOwner(resource.data.user_id) || isAdmin();
+      }
+
+      // Versions
+      match /versions/{versionId} {
+        allow read: if isAuthenticated() && request.auth.uid == get(/databases/$(database)/documents/contents/$(contentId)).data.creator_id
+                    || isAdmin();
+        allow write: if false; // server only
+      }
+    }
+
+    // ─── Series ───────────────────────────────────
+    match /series/{seriesId} {
+      allow read: if true;
+      allow create: if isCreator();
+      allow update: if isAuthenticated() && request.auth.uid == resource.data.creator_id;
+      allow delete: if false;
+    }
+
+    // ─── Categories ───────────────────────────────
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ─── TTS Jobs (server only) ───────────────────
+    match /tts_jobs/{jobId} {
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.creator_id
+                  || isAdmin();
+      allow write: if false;
+    }
+
+    // ─── Transactions (server only) ───────────────
+    match /transactions/{transactionId} {
+      allow read: if isAuthenticated() &&
+        (request.auth.uid == resource.data.buyer_id ||
+         request.auth.uid == resource.data.seller_id)
+        || isAdmin();
+      allow write: if false;
+    }
+
+    // ─── Reports ──────────────────────────────────
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ─── Play Events (server only) ────────────────
+    match /play_events/{eventId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ─── Notifications ────────────────────────────
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.user_id;
+      allow write: if false;
+    }
+
+    // ─── System Config (admin only) ───────────────
+    match /system_config/{configKey} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+  }
+}
