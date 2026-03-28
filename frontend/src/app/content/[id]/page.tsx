@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAppStore } from '@/store';
 import type { Content } from '@/types';
 import PaymentButton from '@/components/payment/PaymentButton';
+import TipButton from '@/components/payment/TipButton';
+import ReviewSection from '@/components/content/ReviewSection';
 
 export default function ContentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -62,6 +64,9 @@ export default function ContentDetailPage() {
             {content.pricing.type === 'paid' && !purchased && content.creator_id !== user?.uid && (
               <PaymentButton contentId={content.content_id} price={content.pricing.price_jpy} onSuccess={() => setPurchased(true)} />
             )}
+            {user && content.creator_id !== user.uid && (
+              <TipButton creatorId={content.creator_id} creatorName={content.creator_display_name} contentId={content.content_id} />
+            )}
           </div>
         </div>
       </div>
@@ -88,6 +93,9 @@ export default function ContentDetailPage() {
           <PaymentButton contentId={content.content_id} price={content.pricing.price_jpy} onSuccess={() => setPurchased(true)} />
         </div>
       ) : null}
+
+      {/* Reviews */}
+      <ReviewSection contentId={id} />
     </div>
   );
 }

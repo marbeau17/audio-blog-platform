@@ -1,0 +1,15 @@
+{
+  "name": "AudioBlog - 音声配信・ブログプラットフォーム",
+  "short_name": "AudioBlog",
+  "description": "テキストを音声に変換して配信するプラットフォーム",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ],
+  "categories": ["entertainment", "education", "books"]
+}

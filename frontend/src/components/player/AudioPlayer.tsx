@@ -1,8 +1,12 @@
 'use client';
 
+import { useState } from 'react';
+import { SkipBack, SkipForward, List } from 'lucide-react';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import { usePlaylist } from '@/hooks/usePlaylist';
 import { useAppStore } from '@/store';
 import ChapterList from './ChapterList';
+import PlayQueue from './PlayQueue';
 
 const SPEEDS = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
@@ -18,6 +22,20 @@ export default function AudioPlayer() {
   const isVisible = useAppStore((s) => s.isPlayerVisible);
   const { state, play, pause, seek, skipBack, skipForward, setPlaybackRate, setVolume, toggleMute } =
     useAudioPlayer(content);
+  const {
+    queue,
+    hasNext,
+    hasPrevious,
+    playNext,
+    playPrevious,
+    playTrackAtIndex,
+    removeFromQueue,
+    moveTrack,
+    clearQueue,
+    toggleShuffle,
+    cycleRepeat,
+  } = usePlaylist();
+  const [showQueue, setShowQueue] = useState(false);
 
   if (!isVisible || !content) return null;
 
@@ -46,6 +64,15 @@ export default function AudioPlayer() {
 
         {/* Controls */}
         <div className="flex items-center gap-3">
+          <button
+            onClick={playPrevious}
+            disabled={!hasPrevious}
+            className="p-2 text-gray-600 hover:text-gray-900 disabled:text-gray-300 disabled:cursor-not-allowed"
+            title="前のトラック"
+          >
+            <SkipBack className="w-5 h-5" />
+          </button>
+
           <button onClick={() => skipBack(10)} className="p-2 text-gray-600 hover:text-gray-900" title="10秒戻る">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
@@ -77,6 +104,15 @@ export default function AudioPlayer() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" />
             </svg>
           </button>
+
+          <button
+            onClick={playNext}
+            disabled={!hasNext}
+            className="p-2 text-gray-600 hover:text-gray-900 disabled:text-gray-300 disabled:cursor-not-allowed"
+            title="次のトラック"
+          >
+            <SkipForward className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Time */}
@@ -99,7 +135,32 @@ export default function AudioPlayer() {
         <button onClick={toggleMute} className="p-2 text-gray-600 hover:text-gray-900">
           {state.isMuted ? '🔇' : '🔊'}
         </button>
+
+        {/* Queue toggle */}
+        <button
+          onClick={() => setShowQueue((prev) => !prev)}
+          className={`p-2 rounded transition ${showQueue ? 'text-brand-600 bg-brand-50' : 'text-gray-600 hover:text-gray-900'}`}
+          title="再生キュー"
+        >
+          <List className="w-5 h-5" />
+        </button>
       </div>
+
+      {/* Play queue */}
+      {showQueue && (
+        <PlayQueue
+          tracks={queue.tracks}
+          currentIndex={queue.currentIndex}
+          shuffle={queue.shuffle}
+          repeat={queue.repeat}
+          onPlayTrack={playTrackAtIndex}
+          onRemoveTrack={removeFromQueue}
+          onMoveTrack={moveTrack}
+          onClearQueue={clearQueue}
+          onToggleShuffle={toggleShuffle}
+          onCycleRepeat={cycleRepeat}
+        />
+      )}
 
       {/* Chapter list */}
       <ChapterList

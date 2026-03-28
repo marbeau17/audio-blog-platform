@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import MarkdownEditor from '@/components/editor/MarkdownEditor';
 
 export default function NewContentPage() {
   const router = useRouter();
@@ -69,8 +70,7 @@ export default function NewContentPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">本文（Markdown）</label>
-            <textarea value={bodyMarkdown} onChange={(e) => setBodyMarkdown(e.target.value)}
-              className="input-field h-96 font-mono text-sm" placeholder="# 見出し&#10;&#10;本文をMarkdownで記述..." />
+            <MarkdownEditor value={bodyMarkdown} onChange={setBodyMarkdown} />
           </div>
 
           <div>

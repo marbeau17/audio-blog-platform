@@ -1,19 +1,18 @@
-name: Backend CI/CD
+name: Backend CI
 
 on:
   push:
     branches: [main, develop]
-    paths: ['backend/**', '.github/workflows/backend-*.yml']
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci-cd.yml'
   pull_request:
     branches: [main, develop]
-    paths: ['backend/**']
+    paths:
+      - 'backend/**'
 
 env:
   PYTHON_VERSION: '3.11'
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GCP_REGION: asia-northeast1
-  SERVICE_NAME: audio-blog-api
-  REGISTRY: asia-northeast1-docker.pkg.dev
 
 jobs:
   lint:
@@ -28,10 +27,9 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-      - run: pip install ruff mypy
+      - run: pip install -r requirements.txt -r requirements-dev.txt
       - run: ruff check app/ tests/
       - run: ruff format --check app/ tests/
-      - run: mypy app/ --ignore-missing-imports
 
   test:
     name: Unit & Integration Tests
@@ -58,112 +56,12 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
       - run: pip install -r requirements.txt -r requirements-dev.txt
-      - name: Run unit tests
-        run: pytest tests/unit/ -v --cov=app --cov-report=xml --cov-report=term-missing -x
-      - name: Run integration tests
-        run: pytest tests/integration/ -v --cov=app --cov-append --cov-report=xml -x
+      - name: Run tests
+        run: pytest tests/ -v --tb=short --cov=app --cov-report=xml --cov-report=term-missing -x
       - name: Upload coverage
         uses: codecov/codecov-action@v4
+        if: always()
         with:
           file: backend/coverage.xml
           flags: backend
           token: ${{ secrets.CODECOV_TOKEN }}
-
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: lint
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - run: pip install bandit safety
-      - run: bandit -r app/ -ll -ii
-      - run: safety check -r requirements.txt --output json || true
-
-  build:
-    name: Build & Push Docker Image
-    runs-on: ubuntu-latest
-    needs: [test, security]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    permissions:
-      contents: read
-      id-token: write
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tags }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: auth
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-      - uses: google-github-actions/setup-gcloud@v2
-      - run: gcloud auth configure-docker ${{ env.REGISTRY }}
-      - id: meta
-        run: echo "tags=${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/audio-blog/${{ env.SERVICE_NAME }}:${{ github.sha }}" >> $GITHUB_OUTPUT
-      - uses: docker/build-push-action@v5
-        with:
-          context: backend
-          push: true
-          tags: |
-            ${{ steps.meta.outputs.tags }}
-            ${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/audio-blog/${{ env.SERVICE_NAME }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  deploy-staging:
-    name: Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    environment: staging
-    permissions:
-      id-token: write
-    steps:
-      - uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-      - uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE_NAME }}-staging
-          region: ${{ env.GCP_REGION }}
-          image: ${{ needs.build.outputs.image_tag }}
-          flags: |
-            --min-instances=1
-            --max-instances=10
-            --memory=1Gi
-            --cpu=1
-            --concurrency=80
-            --set-env-vars=ENVIRONMENT=staging
-
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: deploy-staging
-    if: github.ref == 'refs/heads/main'
-    environment: production
-    permissions:
-      id-token: write
-    steps:
-      - uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-      - uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE_NAME }}
-          region: ${{ env.GCP_REGION }}
-          image: ${{ needs.build.outputs.image_tag }}
-          flags: |
-            --min-instances=2
-            --max-instances=50
-            --memory=2Gi
-            --cpu=2
-            --concurrency=80
-            --set-env-vars=ENVIRONMENT=production

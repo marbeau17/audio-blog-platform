@@ -18,6 +18,7 @@ export default function Header() {
           <Link href="/content" className="text-gray-600 hover:text-gray-900">コンテンツ</Link>
           <Link href="/content?pricing=free" className="text-gray-600 hover:text-gray-900">無料</Link>
           <Link href="/content?sort=popular" className="text-gray-600 hover:text-gray-900">人気</Link>
+          <Link href="/playlists" className="text-gray-600 hover:text-gray-900">プレイリスト</Link>
         </nav>
 
         <SearchBar className="hidden md:block w-64 lg:w-80" />
@@ -40,6 +41,15 @@ export default function Header() {
                   <div className="px-4 py-2 text-xs text-gray-500 border-b">{user.email}</div>
                   <Link href="/profile" className="block px-4 py-2 text-sm hover:bg-gray-50">プロフィール</Link>
                   <Link href="/purchases" className="block px-4 py-2 text-sm hover:bg-gray-50">購入履歴</Link>
+                  {(user.role === 'creator' || user.role === 'admin') && (
+                    <>
+                      <div className="border-t my-1" />
+                      <Link href="/creator/earnings" className="block px-4 py-2 text-sm hover:bg-gray-50">売上詳細</Link>
+                      <Link href="/creator/analytics" className="block px-4 py-2 text-sm hover:bg-gray-50">アナリティクス</Link>
+                      <Link href="/creator/payouts" className="block px-4 py-2 text-sm hover:bg-gray-50">出金管理</Link>
+                      <Link href="/creator/series" className="block px-4 py-2 text-sm hover:bg-gray-50">シリーズ管理</Link>
+                    </>
+                  )}
                   {user.role === 'admin' && (
                     <Link href="/admin" className="block px-4 py-2 text-sm hover:bg-gray-50">管理者</Link>
                   )}

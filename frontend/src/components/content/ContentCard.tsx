@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ListPlus } from 'lucide-react';
 import type { Content } from '@/types';
 import { useAppStore } from '@/store';
 
@@ -26,12 +27,25 @@ export default function ContentCard({ content }: { content: Content }) {
           </div>
         )}
         {content.audio.status === 'completed' && (
-          <button
-            onClick={(e) => { e.preventDefault(); setCurrentContent(content); }}
-            className="absolute bottom-3 right-3 w-10 h-10 bg-brand-600 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition"
-          >
-            <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-          </button>
+          <div className="absolute bottom-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition">
+            <button
+              title="キューに追加"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.dispatchEvent(new CustomEvent('queue:add', { detail: content }));
+              }}
+              className="w-8 h-8 bg-white/90 text-gray-700 hover:bg-white hover:text-brand-600 rounded-full flex items-center justify-center shadow-lg transition"
+            >
+              <ListPlus className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => { e.preventDefault(); setCurrentContent(content); }}
+              className="w-10 h-10 bg-brand-600 text-white rounded-full flex items-center justify-center shadow-lg transition hover:bg-brand-700"
+            >
+              <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
         )}
         {content.pricing.type === 'paid' && (
           <span className="absolute top-2 left-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded">

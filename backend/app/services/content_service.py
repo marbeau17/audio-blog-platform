@@ -77,7 +77,8 @@ class ContentService:
     async def get_content(self, content_id: str) -> dict:
         """Get single content by ID."""
         doc = await self.collection.document(content_id).get()
-        if not doc.exists or doc.to_dict().get("is_deleted"):
+        data = doc.to_dict()
+        if not doc.exists or data is None or data.get("is_deleted"):
             raise NotFoundException("Content")
         return self._doc_to_dict(doc)
 
@@ -154,10 +155,10 @@ class ContentService:
         """Update existing content."""
         doc_ref = self.collection.document(content_id)
         doc = await doc_ref.get()
-        if not doc.exists or doc.to_dict().get("is_deleted"):
+        current = doc.to_dict()
+        if not doc.exists or current is None or current.get("is_deleted"):
             raise NotFoundException("Content")
 
-        current = doc.to_dict()
         if current["creator_id"] != user_id:
             raise ForbiddenException("Only the creator can update this content")
 
@@ -187,9 +188,9 @@ class ContentService:
         """Soft-delete content."""
         doc_ref = self.collection.document(content_id)
         doc = await doc_ref.get()
-        if not doc.exists:
-            raise NotFoundException("Content")
         current = doc.to_dict()
+        if not doc.exists or current is None:
+            raise NotFoundException("Content")
         if current["creator_id"] != user_id and not is_admin:
             raise ForbiddenException("Only the creator can delete this content")
 
@@ -204,9 +205,9 @@ class ContentService:
         """Publish a draft content."""
         doc_ref = self.collection.document(content_id)
         doc = await doc_ref.get()
-        if not doc.exists:
-            raise NotFoundException("Content")
         current = doc.to_dict()
+        if not doc.exists or current is None:
+            raise NotFoundException("Content")
         if current["creator_id"] != user_id:
             raise ForbiddenException()
 
@@ -223,9 +224,9 @@ class ContentService:
         """Unpublish content back to draft."""
         doc_ref = self.collection.document(content_id)
         doc = await doc_ref.get()
-        if not doc.exists:
-            raise NotFoundException("Content")
         current = doc.to_dict()
+        if not doc.exists or current is None:
+            raise NotFoundException("Content")
         if current["creator_id"] != user_id:
             raise ForbiddenException()
 
@@ -245,6 +246,8 @@ class ContentService:
         versions = []
         async for v in versions_ref.order_by("version", direction="DESCENDING").stream():
             vd = v.to_dict()
+            if vd is None:
+                continue
             vd["version_id"] = v.id
             versions.append(vd)
         return versions
@@ -284,6 +287,8 @@ class ContentService:
     @staticmethod
     def _doc_to_dict(doc) -> dict:
         data = doc.to_dict()
+        if data is None:
+            raise NotFoundException("Content")
         data["content_id"] = doc.id
         # Convert Timestamps to datetime
         for key in ("created_at", "updated_at", "published_at", "scheduled_at"):

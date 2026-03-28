@@ -1,0 +1,11 @@
+__pycache__
+*.pyc
+.env
+.env.*
+serviceAccountKey.json
+tests/
+scripts/
+.git
+.gitignore
+README.md
+requirements-dev.txt

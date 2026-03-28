@@ -96,6 +96,7 @@ export default function CreatorDashboardPage() {
           <Link href="/creator/series" className="btn-secondary">シリーズ管理</Link>
           <Link href="/creator/analytics" className="btn-secondary">アナリティクス</Link>
           <Link href="/creator/earnings" className="btn-secondary">売上詳細</Link>
+          <Link href="/creator/payouts" className="btn-secondary">出金管理</Link>
           <Link href="/creator/stripe" className="btn-secondary">Stripe設定</Link>
         </div>
       </div>
