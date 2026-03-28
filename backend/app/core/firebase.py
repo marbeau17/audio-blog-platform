@@ -1,5 +1,7 @@
 """Firebase Admin SDK initialization."""
 
+from __future__ import annotations
+
 import firebase_admin
 from firebase_admin import credentials, firestore, auth, storage
 from google.cloud.firestore_v1 import AsyncClient

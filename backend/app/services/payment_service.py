@@ -1,5 +1,7 @@
 """Payment service with Stripe Connect integration."""
 
+from __future__ import annotations
+
 import stripe
 from datetime import datetime, timezone
 from google.cloud.firestore_v1 import AsyncClient

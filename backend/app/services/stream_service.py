@@ -1,5 +1,7 @@
 """Streaming service - signed URLs and playback position management."""
 
+from __future__ import annotations
+
 from datetime import datetime, timezone, timedelta
 from google.cloud import storage
 from google.cloud.firestore_v1 import AsyncClient

@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { api } from '@/lib/api';
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 interface PaymentButtonProps {
   contentId: string;
@@ -20,15 +21,19 @@ export default function PaymentButton({ contentId, price, onSuccess }: PaymentBu
     setLoading(true);
     setError('');
     try {
+      if (!stripePromise) {
+        throw new Error('Stripe is not configured. Please set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.');
+      }
+
       const res = await api.post<{ client_secret: string }>('/payment/create-intent', { content_id: contentId });
       const stripe = await stripePromise;
-      if (!stripe) throw new Error('Stripe not loaded');
+      if (!stripe) throw new Error('Stripe の読み込みに失敗しました');
 
-      const { error: stripeError } = await stripe.confirmCardPayment(res.data.client_secret, {
-        payment_method: {
-          card: { token: '' } as unknown as import('@stripe/stripe-js').PaymentMethodCreateParams.CardToken, // In production, use Stripe Elements CardElement
-        },
-      });
+      // NOTE: In production, use Stripe Elements (CardElement) to collect card details.
+      // This calls confirmCardPayment with only the client_secret, which works when
+      // the PaymentIntent already has a payment_method attached (e.g., via Checkout Session)
+      // or when Stripe Elements is mounted elsewhere on the page.
+      const { error: stripeError } = await stripe.confirmCardPayment(res.data.client_secret);
 
       if (stripeError) {
         setError(stripeError.message || '決済に失敗しました');

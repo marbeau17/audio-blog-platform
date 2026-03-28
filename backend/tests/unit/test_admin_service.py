@@ -10,7 +10,7 @@ from app.core.exceptions import NotFoundException
 
 @pytest.fixture
 def mock_db():
-    db = AsyncMock()
+    db = MagicMock()
     return db
 
 
@@ -34,10 +34,11 @@ def _make_doc(doc_id: str, data: dict, exists: bool = True):
 
 
 def _make_async_stream(docs):
-    """Return an object that works as `async for doc in query.stream()`."""
-    mock_stream = AsyncMock()
-    mock_stream.__aiter__ = MagicMock(return_value=iter(docs))
-    return mock_stream
+    """Return an async iterator that works with `async for doc in query.stream()`."""
+    async def _stream():
+        for d in docs:
+            yield d
+    return _stream()
 
 
 # ===========================================================================
@@ -653,27 +654,26 @@ class TestGetSystemHealth:
 class TestUpdateSystemConfig:
     @pytest.mark.asyncio
     async def test_successful_update(self):
-        mock_db = AsyncMock()
-        mock_doc_ref = AsyncMock()
+        mock_db = MagicMock()
+        mock_doc_ref = MagicMock()
         mock_doc_ref.set = AsyncMock()
         mock_db.collection.return_value.document.return_value = mock_doc_ref
 
         config = {"max_upload_size": 50, "maintenance_mode": False}
 
-        with patch("app.api.v1.endpoints.admin.get_async_firestore_client", return_value=mock_db):
-            # Simulate what the endpoint does
-            for key, value in config.items():
-                await mock_db.collection("system_config").document(key).set(
-                    {"value": value, "updated_at": datetime.now(timezone.utc), "updated_by": "admin_1"},
-                    merge=True,
-                )
+        # Simulate what the endpoint does
+        for key, value in config.items():
+            await mock_db.collection("system_config").document(key).set(
+                {"value": value, "updated_at": datetime.now(timezone.utc), "updated_by": "admin_1"},
+                merge=True,
+            )
 
-            assert mock_doc_ref.set.call_count == 2
+        assert mock_doc_ref.set.call_count == 2
 
     @pytest.mark.asyncio
     async def test_empty_config(self):
-        mock_db = AsyncMock()
-        mock_doc_ref = AsyncMock()
+        mock_db = MagicMock()
+        mock_doc_ref = MagicMock()
         mock_doc_ref.set = AsyncMock()
         mock_db.collection.return_value.document.return_value = mock_doc_ref
 
@@ -688,8 +688,8 @@ class TestUpdateSystemConfig:
 
     @pytest.mark.asyncio
     async def test_single_key_update(self):
-        mock_db = AsyncMock()
-        mock_doc_ref = AsyncMock()
+        mock_db = MagicMock()
+        mock_doc_ref = MagicMock()
         mock_doc_ref.set = AsyncMock()
         mock_db.collection.return_value.document.return_value = mock_doc_ref
 
@@ -713,7 +713,7 @@ class TestUpdateSystemConfig:
 class TestGetTtsQueue:
     @pytest.mark.asyncio
     async def test_list_tts_jobs_by_status(self):
-        mock_db = AsyncMock()
+        mock_db = MagicMock()
 
         status_counts = {"queued": 3, "processing": 1, "merging": 0, "uploading": 2}
 
@@ -752,7 +752,7 @@ class TestGetTtsQueue:
 
     @pytest.mark.asyncio
     async def test_empty_tts_queue(self):
-        mock_db = AsyncMock()
+        mock_db = MagicMock()
 
         def collection_side_effect(name):
             coll = MagicMock()

@@ -1,5 +1,7 @@
 """Payment and purchase endpoints."""
 
+from __future__ import annotations
+
 import stripe
 from fastapi import APIRouter, Request, Query
 

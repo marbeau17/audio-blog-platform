@@ -1,5 +1,7 @@
 """Creator dashboard and analytics service."""
 
+from __future__ import annotations
+
 from datetime import datetime, timezone, timedelta
 from google.cloud.firestore_v1 import AsyncClient, FieldFilter
 

@@ -1,14 +1,16 @@
 """Unit tests for TTS service - text processing, splitting, SSML generation."""
 
 import pytest
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from app.services.tts_service import TtsService
 
 
 @pytest.fixture
 def tts_service():
-    mock_db = AsyncMock()
-    return TtsService(db=mock_db, storage_client=AsyncMock())
+    mock_db = MagicMock()
+    with patch("app.services.tts_service.tts.TextToSpeechAsyncClient"):
+        with patch("app.services.tts_service.storage.Client"):
+            return TtsService(db=mock_db, storage_client=MagicMock())
 
 
 class TestCleanText:
@@ -72,15 +74,16 @@ class TestSplitIntoChunks:
 
     def test_respects_max_bytes(self, tts_service):
         # Japanese chars are ~3 bytes each in UTF-8
-        text = "あ" * 2000  # ~6000 bytes, should split
+        # Use sentence-ending chars so the splitter can find boundaries
+        text = "あいうえお。" * 400  # ~7200 bytes, should split
         chunks = tts_service.split_into_chunks(text, max_bytes=4500)
         assert len(chunks) > 1
         for chunk in chunks:
             assert len(chunk.encode("utf-8")) <= 4500
 
     def test_splits_on_paragraph_boundary(self, tts_service):
-        para1 = "最初の段落です。" * 50
-        para2 = "二番目の段落です。" * 50
+        para1 = "最初の段落です。" * 200  # ~4800 bytes, exceeds 4500
+        para2 = "二番目の段落です。" * 200  # ~5400 bytes
         text = f"{para1}\n\n{para2}"
         chunks = tts_service.split_into_chunks(text, max_bytes=4500)
         assert len(chunks) >= 2

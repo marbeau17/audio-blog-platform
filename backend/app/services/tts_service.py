@@ -1,5 +1,7 @@
 """Text-to-Speech pipeline service with chunking, SSML, and Circuit Breaker."""
 
+from __future__ import annotations
+
 import re
 import asyncio
 import subprocess

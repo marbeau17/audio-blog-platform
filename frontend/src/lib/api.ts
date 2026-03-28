@@ -3,6 +3,27 @@ import type { ApiResponse, ApiError } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
+/**
+ * Custom error class that wraps API error responses.
+ * Extends Error so that `err instanceof Error` checks work throughout the app,
+ * while also preserving the structured ApiError payload.
+ */
+export class ApiRequestError extends Error {
+  readonly status: number;
+  readonly errorType: string;
+  readonly detail: string;
+  readonly apiError: ApiError;
+
+  constructor(apiError: ApiError) {
+    super(apiError.error.detail);
+    this.name = 'ApiRequestError';
+    this.status = apiError.error.status;
+    this.errorType = apiError.error.type;
+    this.detail = apiError.error.detail;
+    this.apiError = apiError;
+  }
+}
+
 class ApiClient {
   private async getHeaders(): Promise<HeadersInit> {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -48,11 +69,14 @@ class ApiClient {
     if (!res.ok) throw await this.handleError(res);
   }
 
-  private async handleError(res: Response): Promise<ApiError> {
+  private async handleError(res: Response): Promise<ApiRequestError> {
     try {
-      return await res.json();
+      const body: ApiError = await res.json();
+      return new ApiRequestError(body);
     } catch {
-      return { error: { type: 'unknown', status: res.status, detail: res.statusText } };
+      return new ApiRequestError({
+        error: { type: 'unknown', status: res.status, detail: res.statusText },
+      });
     }
   }
 }

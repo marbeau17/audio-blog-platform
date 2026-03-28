@@ -48,17 +48,25 @@ def _make_firestore_doc(data, exists=True):
     return doc
 
 
-def _build_client(firebase_auth_mock):
-    """Build a TestClient with the given firebase auth mock."""
-    with patch("app.core.security.init_firebase"), \
-         patch("app.core.security.auth", firebase_auth_mock), \
-         patch("app.main.init_firebase"), \
-         patch("app.core.firebase.init_firebase"), \
-         patch("app.core.firebase.get_async_firestore_client") as mock_db:
-        mock_db.return_value = AsyncMock()
-        from app.main import create_app
-        app = create_app()
-        return TestClient(app)
+def _build_client_ctx(firebase_auth_mock):
+    """Return a context manager that yields a TestClient with active mocks."""
+    import contextlib
+
+    @contextlib.contextmanager
+    def _ctx():
+        mock_db_instance = MagicMock()
+        with patch("app.core.security.init_firebase"), \
+             patch("app.core.security.auth", firebase_auth_mock), \
+             patch("app.main.init_firebase"), \
+             patch("app.core.firebase.init_firebase"), \
+             patch("app.core.firebase.get_async_firestore_client", return_value=mock_db_instance), \
+             patch("app.services.get_async_firestore_client", return_value=mock_db_instance), \
+             patch("app.services.get_db", return_value=mock_db_instance):
+            from app.main import create_app
+            app = create_app()
+            yield TestClient(app)
+
+    return _ctx()
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -80,17 +88,20 @@ def admin_auth():
 
 @pytest.fixture
 def listener_client(listener_auth):
-    return _build_client(listener_auth)
+    with _build_client_ctx(listener_auth) as client:
+        yield client
 
 
 @pytest.fixture
 def creator_client(creator_auth):
-    return _build_client(creator_auth)
+    with _build_client_ctx(creator_auth) as client:
+        yield client
 
 
 @pytest.fixture
 def admin_client(admin_auth):
-    return _build_client(admin_auth)
+    with _build_client_ctx(admin_auth) as client:
+        yield client
 
 
 @pytest.fixture
@@ -158,7 +169,7 @@ class TestListenerJourney:
         content_list = [sample_content]
 
         # Step 1: GET /contents  -- browse the catalogue
-        with patch("app.services.get_content_service") as mock_svc:
+        with patch("app.api.v1.endpoints.contents.get_content_service") as mock_svc:
             svc = MagicMock()
             svc.list_contents = AsyncMock(return_value=(content_list, None))
             mock_svc.return_value = svc
@@ -196,7 +207,9 @@ class TestListenerJourney:
             mock_fb_auth.create_user.return_value = user_record
             mock_fb_auth.set_custom_user_claims = MagicMock()
             mock_fb_auth.EmailAlreadyExistsError = type("EmailAlreadyExistsError", (Exception,), {})
-            mock_db.return_value = AsyncMock()
+            db_inst = MagicMock()
+            db_inst.collection.return_value.document.return_value.set = AsyncMock()
+            mock_db.return_value = db_inst
 
             resp = listener_client.post(
                 f"{API}/auth/register",
@@ -222,7 +235,7 @@ class TestListenerJourney:
             assert resp.json()["data"]["uid"] == "listener_001"
 
         # Step 3: GET /contents
-        with patch("app.services.get_content_service") as mock_svc:
+        with patch("app.api.v1.endpoints.contents.get_content_service") as mock_svc:
             svc = MagicMock()
             svc.list_contents = AsyncMock(return_value=([sample_content], None))
             mock_svc.return_value = svc
@@ -234,7 +247,7 @@ class TestListenerJourney:
     def test_purchase_flow(self, listener_client, auth_headers, sample_content):
         """Listener browses, creates a payment intent, and verifies purchase status."""
         # Step 1: Browse content
-        with patch("app.services.get_content_service") as mock_svc:
+        with patch("app.api.v1.endpoints.contents.get_content_service") as mock_svc:
             svc = MagicMock()
             svc.list_contents = AsyncMock(return_value=([sample_content], None))
             mock_svc.return_value = svc
@@ -398,7 +411,7 @@ class TestCreatorJourney:
 
         # Step 4: GET /contents  -- verify it is now visible
         published = dict(sample_content, content_id=new_id, title="Updated Article", status="published")
-        with patch("app.services.get_content_service") as mock_svc:
+        with patch("app.api.v1.endpoints.contents.get_content_service") as mock_svc:
             svc = MagicMock()
             svc.list_contents = AsyncMock(return_value=([published], None))
             mock_svc.return_value = svc
@@ -414,7 +427,7 @@ class TestCreatorJourney:
 
         # Step 1: POST /tts/convert
         with patch("app.api.v1.endpoints.tts.get_async_firestore_client") as mock_db:
-            db_inst = AsyncMock()
+            db_inst = MagicMock()
             # content doc lookup
             content_doc = _make_firestore_doc({"creator_id": "creator_001", "content_id": content_id})
             db_inst.collection.return_value.document.return_value.get = AsyncMock(return_value=content_doc)
@@ -422,6 +435,7 @@ class TestCreatorJourney:
             job_ref = MagicMock()
             job_ref.id = "job_e2e_001"
             job_ref.set = AsyncMock()
+            job_ref.update = AsyncMock()
             db_inst.collection.return_value.document.return_value = job_ref
             # re-wire .get for content lookup only on first call
             call_count = {"n": 0}
@@ -453,7 +467,7 @@ class TestCreatorJourney:
 
         # Step 2: GET /tts/jobs/{id}  -- check progress
         with patch("app.api.v1.endpoints.tts.get_async_firestore_client") as mock_db:
-            db_inst = AsyncMock()
+            db_inst = MagicMock()
             job_doc = _make_firestore_doc({
                 "job_id": job_id,
                 "content_id": content_id,

@@ -9,7 +9,7 @@ from app.core.exceptions import NotFoundException
 
 @pytest.fixture
 def mock_db():
-    return AsyncMock()
+    return MagicMock()
 
 
 @pytest.fixture

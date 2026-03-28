@@ -1,5 +1,7 @@
 """Pydantic schemas for Content API."""
 
+from __future__ import annotations
+
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -180,9 +182,9 @@ class StreamUrlResponse(BaseModel):
 
 
 class PlaybackPositionUpdate(BaseModel):
-    position_seconds: float = Field(..., ge=0)
-    total_duration_seconds: float = Field(..., gt=0)
-    playback_speed: float = Field(1.0, ge=0.5, le=2.0)
+    position_seconds: float = Field(..., ge=0, allow_inf_nan=False)
+    total_duration_seconds: float = Field(..., gt=0, allow_inf_nan=False)
+    playback_speed: float = Field(1.0, ge=0.5, le=2.0, allow_inf_nan=False)
     device_id: str = ""
 
 

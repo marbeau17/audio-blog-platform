@@ -5,7 +5,8 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Library, ShoppingCart, X, Check, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 interface SeriesPurchaseButtonProps {
   seriesId: string;
@@ -35,18 +36,19 @@ export default function SeriesPurchaseButton({
     setError('');
 
     try {
+      if (!stripePromise) {
+        throw new Error('Stripe is not configured. Please set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.');
+      }
+
       const res = await api.post<{ client_secret: string }>('/payment/create-intent', {
         series_id: seriesId,
       });
 
       const stripe = await stripePromise;
-      if (!stripe) throw new Error('Stripe not loaded');
+      if (!stripe) throw new Error('Stripe の読み込みに失敗しました');
 
-      const { error: stripeError } = await stripe.confirmCardPayment(res.data.client_secret, {
-        payment_method: {
-          card: { token: '' } as any, // In production, use Stripe Elements CardElement
-        },
-      });
+      // NOTE: In production, use Stripe Elements (CardElement) to collect card details.
+      const { error: stripeError } = await stripe.confirmCardPayment(res.data.client_secret);
 
       if (stripeError) {
         setError(stripeError.message || '決済に失敗しました');
@@ -54,8 +56,9 @@ export default function SeriesPurchaseButton({
         setSuccess(true);
         onSuccess?.();
       }
-    } catch (err: any) {
-      setError(err?.error?.detail || '決済処理中にエラーが発生しました');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '決済処理中にエラーが発生しました';
+      setError(message);
     } finally {
       setLoading(false);
     }

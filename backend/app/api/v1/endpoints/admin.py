@@ -1,5 +1,7 @@
 """Admin endpoints - user management, moderation, platform analytics."""
 
+from __future__ import annotations
+
 from fastapi import APIRouter, Query
 
 from app.core.security import AdminUser

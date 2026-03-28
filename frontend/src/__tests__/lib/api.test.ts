@@ -1,4 +1,4 @@
-import { api } from '@/lib/api';
+import { api, ApiRequestError } from '@/lib/api';
 
 // Mock firebase/auth module
 const mockGetIdToken = jest.fn().mockResolvedValue('test-token-123');
@@ -128,7 +128,7 @@ describe('ApiClient', () => {
   });
 
   describe('error handling', () => {
-    it('throws API error when response is not ok and body is JSON', async () => {
+    it('throws ApiRequestError (instanceof Error) when response is not ok and body is JSON', async () => {
       const apiError = {
         error: { type: 'not_found', status: 404, detail: 'Content not found' },
       };
@@ -139,10 +139,26 @@ describe('ApiClient', () => {
         json: () => Promise.resolve(apiError),
       });
 
-      await expect(api.get('/content/missing')).rejects.toEqual(apiError);
+      await expect(api.get('/content/missing')).rejects.toThrow(ApiRequestError);
+      await mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        json: () => Promise.resolve(apiError),
+      });
+      try {
+        await api.get('/content/missing');
+      } catch (err) {
+        expect(err).toBeInstanceOf(Error);
+        expect(err).toBeInstanceOf(ApiRequestError);
+        expect((err as ApiRequestError).message).toBe('Content not found');
+        expect((err as ApiRequestError).status).toBe(404);
+        expect((err as ApiRequestError).errorType).toBe('not_found');
+        expect((err as ApiRequestError).apiError).toEqual(apiError);
+      }
     });
 
-    it('throws generic error when response body is not JSON', async () => {
+    it('throws ApiRequestError with generic details when response body is not JSON', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
@@ -150,9 +166,21 @@ describe('ApiClient', () => {
         json: () => Promise.reject(new Error('Invalid JSON')),
       });
 
-      await expect(api.get('/broken')).rejects.toEqual({
-        error: { type: 'unknown', status: 500, detail: 'Internal Server Error' },
+      await expect(api.get('/broken')).rejects.toThrow(ApiRequestError);
+      await mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        json: () => Promise.reject(new Error('Invalid JSON')),
       });
+      try {
+        await api.get('/broken');
+      } catch (err) {
+        expect(err).toBeInstanceOf(Error);
+        expect((err as ApiRequestError).message).toBe('Internal Server Error');
+        expect((err as ApiRequestError).status).toBe(500);
+        expect((err as ApiRequestError).errorType).toBe('unknown');
+      }
     });
   });
 });

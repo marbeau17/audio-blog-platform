@@ -1,5 +1,7 @@
 """Redis-based sliding window rate limiter middleware."""
 
+from __future__ import annotations
+
 import time
 from enum import Enum
 

@@ -8,7 +8,7 @@ from app.services.payment_service import PaymentService
 
 @pytest.fixture
 def mock_db():
-    return AsyncMock()
+    return MagicMock()
 
 
 @pytest.fixture
@@ -187,9 +187,9 @@ class TestGetPurchases:
                                       "purchased_at": datetime.now(timezone.utc)}
 
         mock_query = MagicMock()
-        mock_stream = AsyncMock()
-        mock_stream.__aiter__ = AsyncMock(return_value=iter([doc1]))
-        mock_query.limit.return_value.stream.return_value = mock_stream
+        async def _stream():
+            yield doc1
+        mock_query.limit.return_value.stream.return_value = _stream()
 
         mock_db.collection.return_value.document.return_value \
             .collection.return_value.order_by.return_value = mock_query

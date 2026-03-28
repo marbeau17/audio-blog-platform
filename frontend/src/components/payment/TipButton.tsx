@@ -101,8 +101,9 @@ export default function TipButton({ creatorId, creatorName, contentId }: TipButt
         content_id: contentId,
       });
       setSuccess(true);
-    } catch (err: any) {
-      setError(err?.error?.detail || 'チップの送信に失敗しました');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'チップの送信に失敗しました';
+      setError(message);
     } finally {
       setLoading(false);
     }

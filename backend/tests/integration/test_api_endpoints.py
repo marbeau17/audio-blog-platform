@@ -36,7 +36,7 @@ def client(mock_firebase_auth):
         mock_db.return_value = AsyncMock()
         from app.main import create_app
         app = create_app()
-        return TestClient(app)
+        yield TestClient(app)
 
 
 @pytest.fixture
@@ -49,7 +49,7 @@ class TestHealthEndpoint:
         response = client.get("/api/v1/health")
         assert response.status_code == 200
         data = response.json()
-        assert data["status"] == "ok"
+        assert data["status"] == "healthy"
         assert "version" in data
 
     def test_health_has_correct_fields(self, client):
@@ -60,21 +60,64 @@ class TestHealthEndpoint:
 
 
 class TestCategoriesEndpoint:
-    def test_list_categories(self, client):
-        response = client.get("/api/v1/categories")
-        assert response.status_code == 200
-        data = response.json()
-        assert "data" in data
-        categories = data["data"]
-        assert len(categories) > 0
-        assert any(c["id"] == "business" for c in categories)
+    def _mock_category_docs(self):
+        """Create mock Firestore document snapshots for categories."""
+        doc1 = MagicMock()
+        doc1.id = "business"
+        doc1.to_dict.return_value = {
+            "name": "Business",
+            "slug": "business",
+            "order": 1,
+            "children": [{"id": "leadership", "name": "Leadership"}],
+        }
+        doc2 = MagicMock()
+        doc2.id = "technology"
+        doc2.to_dict.return_value = {
+            "name": "Technology",
+            "slug": "technology",
+            "order": 2,
+        }
+        return [doc1, doc2]
 
-    def test_categories_have_children(self, client):
-        response = client.get("/api/v1/categories")
-        data = response.json()["data"]
-        business = next(c for c in data if c["id"] == "business")
-        assert "children" in business
-        assert len(business["children"]) > 0
+    def test_list_categories(self, client):
+        docs = self._mock_category_docs()
+        with patch("app.api.v1.endpoints.common.get_content_service") as mock_svc:
+            svc = MagicMock()
+
+            async def _stream():
+                for d in docs:
+                    yield d
+
+            svc.db.collection.return_value.order_by.return_value.stream = _stream
+            mock_svc.return_value = svc
+
+            response = client.get("/api/v1/categories")
+            assert response.status_code == 200
+            data = response.json()
+            assert "data" in data
+            categories = data["data"]
+            assert len(categories) > 0
+            assert any(c["id"] == "business" for c in categories)
+
+    def test_categories_have_required_fields(self, client):
+        docs = self._mock_category_docs()
+        with patch("app.api.v1.endpoints.common.get_content_service") as mock_svc:
+            svc = MagicMock()
+
+            async def _stream():
+                for d in docs:
+                    yield d
+
+            svc.db.collection.return_value.order_by.return_value.stream = _stream
+            mock_svc.return_value = svc
+
+            response = client.get("/api/v1/categories")
+            data = response.json()["data"]
+            business = next(c for c in data if c["id"] == "business")
+            assert "name" in business
+            assert "slug" in business
+            assert "order" in business
+            assert business["name"] == "Business"
 
 
 class TestAuthEndpoints:
@@ -106,7 +149,7 @@ class TestAuthEndpoints:
 
 class TestContentEndpoints:
     def test_list_contents_no_auth(self, client):
-        with patch("app.services.get_content_service") as mock_svc:
+        with patch("app.api.v1.endpoints.contents.get_content_service") as mock_svc:
             svc = MagicMock()
             svc.list_contents = AsyncMock(return_value=([], None))
             mock_svc.return_value = svc

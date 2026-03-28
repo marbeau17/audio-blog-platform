@@ -8,7 +8,7 @@ from app.services.stream_service import StreamService
 
 @pytest.fixture
 def mock_db():
-    return AsyncMock()
+    return MagicMock()
 
 
 @pytest.fixture

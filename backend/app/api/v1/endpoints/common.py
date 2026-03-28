@@ -1,5 +1,7 @@
 """Common endpoints - health, categories, search, uploads, reports."""
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from typing import Set
 
@@ -7,9 +9,12 @@ from fastapi import APIRouter, Depends, UploadFile, File
 
 from app.core.config import get_settings
 from app.core.exceptions import ValidationException
+from app.core.logging import get_logger
 from app.core.security import CurrentUser, OptionalUser, AdminUser
 from app.schemas import HealthResponse, DetailedHealthResponse
 from app.services import get_admin_service, get_content_service
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 
@@ -104,17 +109,36 @@ async def _validate_file(
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
+    """Basic health check -- always returns 200 for Cloud Run probes.
+
+    This endpoint intentionally avoids any database or external service calls
+    so that it can respond even when downstream dependencies are unavailable.
+    """
     settings = get_settings()
-    return {"status": "ok", "version": settings.APP_VERSION, "environment": settings.ENVIRONMENT}
+    return {"status": "healthy", "version": settings.APP_VERSION, "environment": settings.ENVIRONMENT}
 
 
 @router.get("/health/detailed", response_model=DetailedHealthResponse)
 async def detailed_health(user: AdminUser):
+    """Detailed health check that probes Firebase, Redis, and other services."""
     settings = get_settings()
     svc = get_admin_service()
     services = await svc.get_system_health()
+
+    # Check Redis connectivity
+    try:
+        import redis.asyncio as aioredis
+        pool = aioredis.from_url(settings.REDIS_URL, socket_connect_timeout=3)
+        await pool.ping()
+        await pool.aclose()
+        services["redis"] = "healthy"
+    except Exception as exc:
+        logger.warning("redis_health_check_failed", error=str(exc))
+        services["redis"] = "unhealthy"
+
+    overall = "healthy" if all(v == "healthy" for v in services.values()) else "degraded"
     return {
-        "status": "ok" if all(v == "healthy" for v in services.values()) else "degraded",
+        "status": overall,
         "version": settings.APP_VERSION,
         "environment": settings.ENVIRONMENT,
         "services": {k: {"status": v} for k, v in services.items()},
@@ -123,34 +147,19 @@ async def detailed_health(user: AdminUser):
 
 @router.get("/categories")
 async def list_categories():
-    """Return category tree."""
-    return {
-        "data": [
-            {"id": "business", "name": "ビジネス", "children": [
-                {"id": "strategy", "name": "経営戦略"},
-                {"id": "marketing", "name": "マーケティング"},
-                {"id": "leadership", "name": "リーダーシップ"},
-                {"id": "finance", "name": "ファイナンス"},
-            ]},
-            {"id": "self-improvement", "name": "自己啓発", "children": [
-                {"id": "mindset", "name": "マインドセット"},
-                {"id": "habits", "name": "習慣形成"},
-                {"id": "communication", "name": "コミュニケーション"},
-                {"id": "time-management", "name": "時間管理"},
-            ]},
-            {"id": "technology", "name": "テクノロジー", "children": [
-                {"id": "ai-ml", "name": "AI・機械学習"},
-                {"id": "programming", "name": "プログラミング"},
-                {"id": "product-dev", "name": "プロダクト開発"},
-                {"id": "data-science", "name": "データサイエンス"},
-            ]},
-            {"id": "lifestyle", "name": "ライフスタイル", "children": [
-                {"id": "health", "name": "健康・ウェルネス"},
-                {"id": "money", "name": "マネー・投資"},
-                {"id": "career", "name": "キャリア"},
-            ]},
-        ]
-    }
+    """Return categories from Firestore."""
+    svc = get_content_service()
+    docs = [doc async for doc in svc.db.collection("categories").order_by("order").stream()]
+    categories = []
+    for doc in docs:
+        data = doc.to_dict()
+        categories.append({
+            "id": doc.id,
+            "name": data.get("name", ""),
+            "slug": data.get("slug", doc.id),
+            "order": data.get("order", 0),
+        })
+    return {"data": categories}
 
 
 @router.get("/search")

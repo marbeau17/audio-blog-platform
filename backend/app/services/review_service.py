@@ -1,5 +1,7 @@
 """Review/rating management service."""
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from google.cloud.firestore_v1 import AsyncClient, FieldFilter
 from app.core.logging import get_logger

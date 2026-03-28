@@ -12,6 +12,10 @@ services:
     environment:
       - ENVIRONMENT=development
       - REDIS_URL=redis://redis:6379
+      - FIRESTORE_EMULATOR_HOST=firebase-emulator:8081
+      - FIREBASE_AUTH_EMULATOR_HOST=firebase-emulator:9099
+      - FIREBASE_STORAGE_EMULATOR_HOST=firebase-emulator:9199
+      - GCLOUD_PROJECT=audio-blog-platform
     depends_on:
       redis:
         condition: service_healthy
@@ -38,7 +42,7 @@ services:
       - "8081:8081"   # Firestore
       - "9099:9099"   # Auth
       - "9199:9199"   # Storage
-    command: firebase emulators:start --project=demo-audio-blog
+    command: firebase emulators:start --project=audio-blog-platform
     volumes:
       - ./infrastructure/firebase:/home/node/firebase
     working_dir: /home/node/firebase

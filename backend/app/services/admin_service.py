@@ -1,5 +1,7 @@
 """Admin service - user management and content moderation."""
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from firebase_admin import auth
 from google.cloud.firestore_v1 import AsyncClient, FieldFilter
@@ -180,7 +182,7 @@ class AdminService:
         # Firestore check
         try:
             await self.db.collection("system_config").document("health_check").get()
-        except (ConnectionError, TimeoutError, OSError) as exc:
+        except Exception as exc:
             logger.warning("firestore_health_check_failed", error=str(exc))
             health["firestore"] = "unhealthy"
 

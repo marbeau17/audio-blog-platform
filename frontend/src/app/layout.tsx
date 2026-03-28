@@ -4,13 +4,26 @@ import AudioPlayer from '@/components/player/AudioPlayer';
 import Header from '@/components/layout/Header';
 
 export const metadata: Metadata = {
-  title: 'AudioBlog - 音声配信・ブログプラットフォーム',
-  description: 'テキストコンテンツを音声化して配信。ビジネス書・自己啓発本を耳で楽しむ。',
-  openGraph: {
-    title: 'AudioBlog',
-    description: '音声配信・ブログ統合プラットフォーム',
-    type: 'website',
+  title: {
+    default: 'AudioBlog - 音声配信・ブログプラットフォーム',
+    template: '%s | AudioBlog',
   },
+  description: 'テキストを音声に変換して配信するプラットフォーム。ビジネス書・自己啓発本などを音声で楽しもう。',
+  keywords: ['音声配信', 'ブログ', 'TTS', 'オーディオブック', 'ポッドキャスト', 'AudioBlog'],
+  authors: [{ name: 'AudioBlog' }],
+  openGraph: {
+    type: 'website',
+    locale: 'ja_JP',
+    siteName: 'AudioBlog',
+    title: 'AudioBlog - 音声配信・ブログプラットフォーム',
+    description: 'テキストを音声に変換して配信するプラットフォーム',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AudioBlog',
+    description: 'テキストを音声に変換して配信するプラットフォーム',
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

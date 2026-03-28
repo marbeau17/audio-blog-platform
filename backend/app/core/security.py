@@ -1,6 +1,8 @@
 """Authentication dependencies for FastAPI."""
 
-from typing import Annotated
+from __future__ import annotations
+
+from typing import Annotated, Optional
 from fastapi import Depends, Header, Request
 from firebase_admin import auth
 from app.core.config import get_settings
@@ -77,6 +79,6 @@ def require_role(*roles: str):
 
 # Typed dependencies
 CurrentUser = Annotated[AuthenticatedUser, Depends(get_current_user)]
-OptionalUser = Annotated[AuthenticatedUser | None, Depends(get_optional_user)]
+OptionalUser = Annotated[Optional[AuthenticatedUser], Depends(get_optional_user)]
 CreatorUser = Annotated[AuthenticatedUser, Depends(require_role("creator", "admin"))]
 AdminUser = Annotated[AuthenticatedUser, Depends(require_role("admin"))]
