@@ -85,7 +85,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Permissions-Policy"] = "microphone=(), camera=(), geolocation=()"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-eval' https://js.stripe.com https://apis.google.com; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://apis.google.com; "
             "frame-src https://js.stripe.com https://accounts.google.com; "
             "connect-src 'self' https://api.stripe.com https://firestore.googleapis.com https://storage.googleapis.com "
             "https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com "
