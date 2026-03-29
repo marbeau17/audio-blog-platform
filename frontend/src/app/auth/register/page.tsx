@@ -61,7 +61,18 @@ export default function RegisterPage() {
             <span className="text-xs text-gray-400">または</span>
             <div className="flex-1 h-px bg-gray-200" />
           </div>
-          <button onClick={signInWithGoogle} className="btn-secondary w-full">Googleで登録</button>
+          <button onClick={async () => {
+            setError('');
+            try {
+              await signInWithGoogle();
+              router.push('/');
+            } catch (err: unknown) {
+              const code = (err as { code?: string })?.code;
+              if (code === 'auth/popup-closed-by-user') return;
+              const message = err instanceof Error ? err.message : 'Googleログインに失敗しました';
+              setError(message);
+            }
+          }} className="btn-secondary w-full">Googleで登録</button>
           <p className="text-center text-sm text-gray-500 mt-6">
             アカウントがある場合は <Link href="/auth/login" className="text-brand-600 hover:underline">ログイン</Link>
           </p>
